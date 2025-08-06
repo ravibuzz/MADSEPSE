@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Interativo: Imunologia e Sepse</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .answer-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .answer-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .correct {
+            background-color: #22c55e !important; /* green-500 */
+            color: white !important;
+            border-color: #16a34a !important; /* green-600 */
+        }
+        .incorrect {
+            background-color: #ef4444 !important; /* red-500 */
+            color: white !important;
+            border-color: #dc2626 !important; /* red-600 */
+        }
+        .rationale-individual {
+            transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out, padding 0.4s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .rationale-individual.show {
+            max-height: 500px; /* Ample height */
+            opacity: 1;
+            padding-top: 0.75rem;
+            padding-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <main class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden">
+        <div id="quiz-container">
+            <div class="p-6 md:p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">Quiz de Imunologia</h1>
+                    <p id="progress-text" class="text-sm font-medium text-gray-600 dark:text-gray-400">Questão 1/10</p>
+                </div>
+                <div id="question-container" class="mb-6">
+                    <p id="question-text" class="text-lg md:text-xl font-semibold leading-relaxed">Carregando pergunta...</p>
+                </div>
+                <div id="answer-buttons" class="grid grid-cols-1 gap-4">
+                    <!-- As opções de resposta serão inseridas aqui pelo JavaScript -->
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="next-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-transform transform hover:scale-105 hidden">Próxima Questão</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="score-container" class="hidden p-8 md:p-12 text-center">
+            <h2 class="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400">Quiz Finalizado!</h2>
+            <p class="text-xl mb-2">Sua pontuação final é:</p>
+            <p id="score-text" class="text-5xl font-extrabold text-gray-800 dark:text-white mb-8">0 / 10</p>
+            <p id="score-feedback" class="text-lg mb-8"></p>
+            <button id="restart-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-transform transform hover:scale-105">Refazer o Quiz</button>
+        </div>
+    </main>
+
+    <script>
+        // --- Dados do Quiz ---
+        const quizData = [
+            {
+                question: "Um paciente de 28 anos, previamente hígido, é internado na UTI com quadro de pneumonia bacteriana grave. Após 48 horas, evolui com hipotensão refratária a volume (PAM < 65 mmHg), necessidade de noradrenalina, PaO2/FiO2 de 150, plaquetas de 80.000/mm³ e rebaixamento do nível de consciência (Glasgow 13). Qual das seguintes alternativas melhor descreve a principal transição fisiopatológica que justifica a gravidade do quadro atual do paciente?",
+                answers: [
+                    { text: "A infecção bacteriana se disseminou da via pulmonar para a corrente sanguínea, caracterizando um quadro de bacteremia que levou à falência de múltiplos órgãos.", correct: false, rationale: "Embora a bacteremia possa ocorrer, a gravidade na sepse deriva da resposta inflamatória desregulada do hospedeiro, e não necessariamente da disseminação sistêmica do patógeno em si." },
+                    { text: "Ocorre uma exacerbação da hipersensibilidade tipo IV, com linfócitos T citotóxicos ativados causando dano tecidual direto no endotélio vascular sistêmico.", correct: false, rationale: "A hipersensibilidade tipo IV é uma reação tardia mediada por células T e está mais associada a condições como dermatite de contato ou granulomas, não sendo o mecanismo primário da disfunção orgânica aguda na sepse." },
+                    { text: "A resposta inflamatória sistêmica (SIRS), mediada principalmente por TNF-alfa, IL-1 e IL-6, tornou-se desregulada, levando a danos endoteliais, vasodilatação profunda e coagulopatia, que definem a sepse.", correct: true, rationale: "Esta opção descreve corretamente a transição de uma infecção localizada para sepse, onde a resposta inflamatória sistêmica do hospedeiro, e não a infecção em si, causa a disfunção orgânica potencialmente fatal." },
+                    { text: "O paciente desenvolveu a Síndrome da Resposta Anti-inflamatória Compensatória (CARS), resultando em uma imunossupressão profunda que permitiu a reativação de infecções virais latentes.", correct: false, rationale: "A CARS é uma fase posterior à SIRS e, embora contribua para a mortalidade tardia, o quadro agudo de choque e disfunção orgânica é característico da fase hiper-inflamatória inicial (SIRS)." }
+                ]
+            },
+            {
+                question: "Um paciente com lúpus eritematoso sistêmico (LES) apresenta proteinúria, hematúria e elevação da creatinina. A biópsia renal revela deposição de imunocomplexos na membrana basal glomerular. Qual tipo de reação de hipersensibilidade é o principal responsável por esta lesão renal?",
+                answers: [
+                    { text: "Tipo I, mediada por IgE e mastócitos.", correct: false, rationale: "A reação do tipo I é associada a alergias e anafilaxia, não à formação de imunocomplexos que se depositam em tecidos." },
+                    { text: "Tipo II, mediada por IgG/IgM contra antígenos de superfície celular.", correct: false, rationale: "A reação do tipo II envolve anticorpos que atacam células diretamente (ex: transfusão incompatível), e não a deposição de complexos antígeno-anticorpo solúveis." },
+                    { text: "Tipo III, mediada por deposição de imunocomplexos circulantes.", correct: true, rationale: "A glomerulonefrite lúpica é o exemplo clássico de uma reação do tipo III, na qual complexos de antígeno-anticorpo se depositam nos glomérulos, ativam o complemento e causam inflamação e dano tecidual." },
+                    { text: "Tipo IV, mediada por linfócitos T.", correct: false, rationale: "A reação do tipo IV é uma hipersensibilidade tardia mediada por células T, responsável por condições como a dermatite de contato, e não envolve a deposição de imunocomplexos." }
+                ]
+            },
+            {
+                question: "Durante a fase aguda de uma infecção bacteriana grave, o fígado aumenta drasticamente a síntese de Proteína C Reativa (PCR) em detrimento da produção de albumina. Qual citocina é a principal indutora desse redirecionamento da síntese hepática?",
+                answers: [
+                    { text: "IL-10", correct: false, rationale: "A IL-10 é uma citocina primariamente anti-inflamatória, que atua suprimindo a resposta imune, em oposição a estimular a produção de proteínas de fase aguda." },
+                    { text: "TGF-beta", correct: false, rationale: "O TGF-beta tem efeitos complexos, mas é mais conhecido por seu papel na diferenciação de macrófagos M2 e na resolução da inflamação e fibrose, não como o principal indutor de proteínas de fase aguda." },
+                    { text: "IL-6", correct: true, rationale: "A IL-6 é a principal citocina que atua nos hepatócitos para induzir a produção da maioria das proteínas de fase aguda, como a PCR e o fibrinogênio." },
+                    { text: "TNF-alfa", correct: false, rationale: "Embora o TNF-alfa seja uma citocina pró-inflamatória crucial e possa estimular a produção de algumas proteínas de fase aguda, a IL-6 é considerada a mediadora central deste processo no fígado." }
+                ]
+            },
+            {
+                question: "Um paciente com tuberculose pulmonar apresenta na radiografia de tórax uma lesão cavitária no ápice direito. A análise histopatológica dessa lesão provavelmente revelaria uma estrutura organizada. Qual das seguintes descrições melhor corresponde a essa estrutura?",
+                answers: [
+                    { text: "Uma área de inflamação difusa com predominância de neutrófilos e eosinófilos, característica de uma resposta Th2.", correct: false, rationale: "Essa descrição corresponde a uma inflamação alérgica ou parasitária, não à contenção de um patógeno intracelular como o Mycobacterium tuberculosis." },
+                    { text: "Um granuloma, com um centro de necrose caseosa, rodeado por macrófagos ativados (células epitelioides), células gigantes multinucleadas e uma coroa de linfócitos Th1.", correct: true, rationale: "Esta é a descrição clássica de um granuloma tuberculoso, uma tentativa do sistema imune, orquestrada por linfócitos Th1, de isolar e conter um patógeno que não pode ser eliminado." },
+                    { text: "Um abscesso agudo, caracterizado por uma coleção de neutrófilos íntegros e lisados, com pouca organização estrutural.", correct: false, rationale: "Um abscesso é típico de infecções bacterianas piogênicas e representa uma inflamação aguda, não a inflamação crônica organizada vista na tuberculose." },
+                    { text: "Extensa fibrose tecidual com proliferação de fibroblastos, mas sem um componente inflamatório ativo significativo, indicando resolução do processo.", correct: false, rationale: "Embora a fibrose seja um componente do granuloma, a descrição de uma lesão ativa na tuberculose inclui necessariamente um componente inflamatório celular robusto e organizado." }
+                ]
+            },
+            {
+                question: "Um paciente sobrevive a um choque séptico grave. Três semanas após a alta da UTI, ele é reinternado com uma pneumonia fúngica oportunista. Qual o estado imunológico que melhor explica essa alta suscetibilidade a uma infecção secundária?",
+                answers: [
+                    { text: "Um estado persistente de SIRS, com níveis cronicamente elevados de citocinas pró-inflamatórias que causam disfunção dos neutrófilos.", correct: false, rationale: "Após a fase aguda da sepse, o sistema imune geralmente transita de um estado pró-inflamatório (SIRS) para um estado anti-inflamatório, e não o contrário." },
+                    { text: "Imunodeficiência adquirida devido à apoptose em massa de linfócitos e exaustão de células T, características da Síndrome da Resposta Anti-inflamatória Compensatória (CARS).", correct: true, rationale: "Esta opção descreve com precisão a imunossupressão induzida pela sepse (um estado dominado pela CARS), que deixa o paciente vulnerável a infecções oportunistas e é uma causa importante de mortalidade tardia." },
+                    { text: "Desenvolvimento de uma doença autoimune desencadeada pela sepse, na qual o sistema imune ataca as próprias células de defesa.", correct: false, rationale: "Embora a desregulação imune possa ocorrer, o desenvolvimento de autoimunidade não é o principal mecanismo que explica a suscetibilidade a infecções oportunistas no período pós-sepse." },
+                    { text: "Memória imunológica deficiente, na qual os linfócitos B não conseguem mais produzir anticorpos específicos contra novos patógenos.", correct: false, rationale: "A imunossupressão pós-sepse é mais ampla, afetando tanto a imunidade inata quanto a celular (linfócitos T), e não se limita a uma deficiência na produção de anticorpos." }
+                ]
+            },
+            {
+                question: "Um paciente recebe uma transfusão de sangue tipo A, sendo seu tipo sanguíneo B. Em minutos, ele desenvolve febre, calafrios, hipotensão e hemoglobinúria. Este quadro é uma manifestação clássica de qual tipo de reação de hipersensibilidade?",
+                answers: [
+                    { text: "Tipo I, pois a liberação de histamina por mastócitos causa a hipotensão.", correct: false, rationale: "Embora haja hipotensão, o mecanismo primário não é mediado por IgE, mas sim pela destruição de células pelo sistema complemento e anticorpos." },
+                    { text: "Tipo IV, pois há uma reação tardia das células T contra os antígenos eritrocitários.", correct: false, rationale: "Esta é uma reação hiperaguda, ocorrendo em minutos. A hipersensibilidade do tipo IV é, por definição, uma reação tardia, que leva de 24 a 72 horas para se desenvolver." },
+                    { text: "Tipo III, devido à formação de imunocomplexos entre os anticorpos do receptor e os antígenos do doador.", correct: false, rationale: "A reação do tipo III envolve imunocomplexos solúveis que se depositam nos tecidos. Aqui, o alvo são antígenos na superfície das hemácias, caracterizando outra classe de reação." },
+                    { text: "Tipo II, pois anticorpos pré-formados (anti-A) no receptor se ligam a antígenos na superfície das hemácias doadas, ativando o complemento e causando lise celular.", correct: true, rationale: "Esta é a definição exata de uma reação de hipersensibilidade citotóxica do tipo II, onde anticorpos (IgM e IgG) se ligam a antígenos em uma superfície celular, resultando em destruição celular." }
+                ]
+            },
+            {
+                question: "Na inflamação crônica associada à esquistossomose, a formação de granulomas ao redor dos ovos do parasita no fígado é um processo que, embora contenha a infecção, leva à fibrose e hipertensão portal. Qual subtipo de linfócito T auxiliar (Th) é predominante na orquestração dessa resposta fibrótica?",
+                answers: [
+                    { text: "Th1, que ativa macrófagos para uma resposta microbicida intensa, resultando em necrose caseosa.", correct: false, rationale: "A resposta Th1 com necrose caseosa é mais clássica da tuberculose. Embora ative macrófagos, a resposta dominante na esquistossomose é outra." },
+                    { text: "Th17, que recruta neutrófilos e estimula queratinócitos, levando a uma inflamação purulenta.", correct: false, rationale: "A resposta Th17 está mais associada a infecções fúngicas e bacterianas extracelulares e a doenças como a psoríase, não sendo a principal na fibrose da esquistossomose." },
+                    { text: "Th2, que recruta eosinófilos e promove a ativação alternativa de macrófagos (M2), levando à deposição de colágeno e remodelamento tecidual (fibrose).", correct: true, rationale: "Esta é a resposta imune característica contra helmintos. A via Th2, com citocinas como IL-4 e IL-13, é fundamental para o recrutamento de eosinófilos e para a ativação de macrófagos M2, que são centrais no processo de fibrose." },
+                    { text: "Linfócitos T reguladores (Treg), que suprimem a resposta imune para limitar o dano tecidual.", correct: false, rationale: "Embora as células Treg estejam presentes e tentem modular a resposta, a patologia fibrótica da esquistossomose é impulsionada por uma resposta efetora ativa, não pela supressão." }
+                ]
+            },
+            {
+                question: "Um médico no pronto-socorro avalia um paciente de 75 anos com suspeita de infecção urinária. O paciente apresenta-se confuso (alteração aguda do estado mental), com frequência respiratória de 24 ipm e pressão arterial sistólica de 95 mmHg. De acordo com as diretrizes atuais, qual é a conduta mais apropriada baseada nestes achados?",
+                answers: [
+                    { text: "Solicitar o escore SOFA completo para confirmar a sepse antes de iniciar qualquer terapia.", correct: false, rationale: "O escore SOFA completo é complexo e requer exames laboratoriais, sendo mais adequado para monitoramento na UTI. A suspeita clínica baseada nos sinais de alerta é suficiente para iniciar a ação." },
+                    { text: "Considerar o qSOFA positivo (≥ 2 critérios) e iniciar imediatamente a investigação de disfunção orgânica e a terapia para sepse.", correct: true, rationale: "O paciente preenche os três critérios do qSOFA (alteração mental, taquipneia e hipotensão), indicando alto risco de desfechos ruins. Isso deve desencadear uma avaliação e intervenção urgentes para sepse." },
+                    { text: "Aguardar a confirmação da infecção por urocultura antes de classificar o quadro como sepse.", correct: false, rationale: "Atrasar o tratamento em um paciente com alta suspeita de sepse para aguardar a confirmação microbiológica aumenta significativamente a mortalidade. O tratamento deve ser iniciado com base na suspeita clínica." },
+                    { text: "O quadro é classificado apenas como SIRS, pois não há febre. A conduta é manter observação e hidratação.", correct: false, rationale: "SIRS pode ocorrer sem febre (hipotermia também é um critério). Mais importante, a presença de sinais de disfunção orgânica (confusão, hipotensão) em um contexto de infecção suspeita define a sepse, que é mais grave que a SIRS." }
+                ]
+            },
+            {
+                question: "O TNF-alfa exerce efeitos paradoxais durante uma infecção. Em uma infecção localizada, ele é protetor, mas em uma infecção grave (sepse), seus efeitos sistêmicos são patológicos. Qual dos seguintes efeitos é um exemplo da ação PATOLÓGICA sistêmica do TNF-alfa?",
+                answers: [
+                    { text: "Indução de febre através da ação no hipotálamo.", correct: false, rationale: "A febre é geralmente considerada um efeito protetor sistêmico, pois otimiza a resposta imune e dificulta a proliferação de patógenos." },
+                    { text: "Aumento da expressão de moléculas de adesão no endotélio local para facilitar a diapedese de leucócitos.", correct: false, rationale: "Este é um efeito protetor e fundamental da inflamação LOCAL, que permite que as células de defesa cheguem ao sítio da infecção." },
+                    { text: "Inibição da contratilidade miocárdica e redução do tônus vascular, resultando em baixo débito cardíaco e hipotensão profunda.", correct: true, rationale: "Estes são os principais efeitos patológicos sistêmicos do TNF-alfa em altas concentrações, contribuindo diretamente para o choque séptico e a disfunção cardiovascular." },
+                    { text: "Estímulo da medula óssea para aumentar a produção de leucócitos.", correct: false, rationale: "A leucocitose é uma resposta protetora sistêmica, mobilizando mais células de defesa para combater a infecção." }
+                ]
+            },
+            {
+                question: "Analisando a fisiopatologia da inflamação crônica, a formação de fibrose tecidual é uma consequência comum que leva à perda de função do órgão. Qual célula é a principal responsável pela deposição de matriz extracelular (colágeno) que resulta na fibrose?",
+                answers: [
+                    { text: "Macrófago M1", correct: false, rationale: "O macrófago M1 (classicamente ativado) tem uma função primariamente pró-inflamatória e microbicida, não estando diretamente envolvido na produção de colágeno." },
+                    { text: "Linfócito Th1", correct: false, rationale: "O linfócito Th1 orquestra a resposta celular ativando macrófagos, mas não produz diretamente a matriz fibrótica." },
+                    { text: "Neutrófilo", correct: false, rationale: "O neutrófilo é uma célula da inflamação aguda, com vida curta, e seu papel principal é a fagocitose, não a produção de matriz para reparo ou fibrose." },
+                    { text: "Fibroblasto", correct: true, rationale: "O fibroblasto é a célula central na cicatrização e na fibrose. Quando ativado por citocinas (como TGF-beta, liberado por macrófagos M2), ele prolifera e sintetiza grandes quantidades de colágeno e outros componentes da matriz." }
+                ]
+            }
+        ];
+
+        // --- Elementos do DOM ---
+        const quizContainer = document.getElementById('quiz-container');
+        const scoreContainer = document.getElementById('score-container');
+        const questionText = document.getElementById('question-text');
+        const answerButtons = document.getElementById('answer-buttons');
+        const progressText = document.getElementById('progress-text');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const scoreText = document.getElementById('score-text');
+        const scoreFeedback = document.getElementById('score-feedback');
+
+        // --- Variáveis de Estado ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let shuffledQuestions = [];
+
+        // --- Funções ---
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            shuffledQuestions = quizData.sort(() => Math.random() - 0.5); // Embaralha as questões
+            scoreContainer.classList.add('hidden');
+            quizContainer.classList.remove('hidden');
+            nextBtn.classList.add('hidden');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            resetState();
+            const currentQuestion = shuffledQuestions[currentQuestionIndex];
+            questionText.innerText = currentQuestion.question;
+            progressText.innerText = `Questão ${currentQuestionIndex + 1}/${shuffledQuestions.length}`;
+
+            currentQuestion.answers.forEach(answer => {
+                const answerWrapper = document.createElement('div');
+                answerWrapper.classList.add('bg-white', 'dark:bg-gray-700', 'rounded-lg', 'border', 'border-gray-300', 'dark:border-gray-600', 'overflow-hidden');
+
+                const button = document.createElement('button');
+                button.innerText = answer.text;
+                button.classList.add('answer-btn', 'w-full', 'text-left', 'p-4');
+                
+                if (answer.correct) {
+                    button.dataset.correct = answer.correct;
+                }
+                button.addEventListener('click', selectAnswer);
+                
+                const rationaleEl = document.createElement('div');
+                rationaleEl.classList.add('rationale-individual', 'text-sm', 'text-gray-700', 'dark:text-gray-300');
+                
+                const rationaleTitle = document.createElement('strong');
+                rationaleTitle.innerText = 'Justificativa: ';
+                rationaleTitle.classList.add('text-gray-800', 'dark:text-gray-200');
+
+                rationaleEl.appendChild(rationaleTitle);
+                rationaleEl.append(answer.rationale);
+
+                answerWrapper.appendChild(button);
+                answerWrapper.appendChild(rationaleEl);
+
+                answerButtons.appendChild(answerWrapper);
+            });
+        }
+
+        function resetState() {
+            nextBtn.classList.add('hidden');
+            while (answerButtons.firstChild) {
+                answerButtons.removeChild(answerButtons.firstChild);
+            }
+        }
+
+        function selectAnswer(e) {
+            const selectedBtn = e.currentTarget;
+            const isCorrect = selectedBtn.dataset.correct === 'true';
+
+            if (isCorrect) {
+                score++;
+            }
+            
+            // Itera sobre todos os wrappers de resposta
+            Array.from(answerButtons.children).forEach(wrapper => {
+                const button = wrapper.querySelector('.answer-btn');
+                const rationale = wrapper.querySelector('.rationale-individual');
+
+                // Aplica a cor correta/incorreta
+                if (button.dataset.correct === 'true') {
+                    wrapper.classList.add('correct');
+                } else if (button === selectedBtn) {
+                     wrapper.classList.add('incorrect');
+                }
+                
+                // Desabilita todos os botões
+                button.disabled = true;
+
+                // Mostra todas as justificativas
+                rationale.classList.add('show');
+            });
+
+            if (shuffledQuestions.length > currentQuestionIndex + 1) {
+                nextBtn.classList.remove('hidden');
+            } else {
+                // Adiciona um pequeno delay antes de mostrar a pontuação final
+                // para que o usuário possa ler a justificativa da última questão.
+                setTimeout(showScore, 3000); 
+            }
+        }
+
+        function showScore() {
+            quizContainer.classList.add('hidden');
+            scoreContainer.classList.remove('hidden');
+            scoreText.innerText = `${score} / ${shuffledQuestions.length}`;
+            
+            const percentage = (score / shuffledQuestions.length) * 100;
+            let feedback = '';
+            if (percentage === 100) {
+                feedback = 'Excelente! Você demonstrou domínio total do assunto.';
+            } else if (percentage >= 70) {
+                feedback = 'Muito bom! Você tem um ótimo conhecimento sobre o tema.';
+            } else if (percentage >= 50) {
+                feedback = 'Bom trabalho. Continue estudando para aprofundar alguns conceitos.';
+            } else {
+                feedback = 'Não desanime! Reveja o material de estudo e tente novamente.';
+            }
+            scoreFeedback.innerText = feedback;
+        }
+
+        // --- Event Listeners ---
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            showQuestion();
+        });
+
+        restartBtn.addEventListener('click', startQuiz);
+
+        // --- Iniciar o Quiz ---
+        document.addEventListener('DOMContentLoaded', startQuiz);
+
+    </script>
+</body>
+</html>
